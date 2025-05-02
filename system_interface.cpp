@@ -59,10 +59,22 @@ void SystemInterface::initialize_pty()
         std::cerr << "fork failed: " << strerror(errno) << std::endl;
         exit(1);
     } else if (child_pid == 0) {
+        // Create a new session to enable job control
+        if (setsid() < 0) {
+            std::cerr << "setsid failed: " << strerror(errno) << std::endl;
+            exit(1);
+        }
+
         const char *pty_name = ptsname(pty_fd);
         int slave_fd         = open(pty_name, O_RDWR);
         if (slave_fd < 0) {
             std::cerr << "open slave PTY failed: " << strerror(errno) << std::endl;
+            exit(1);
+        }
+
+        // Set the PTY as the controlling terminal
+        if (ioctl(slave_fd, TIOCSCTTY, 0) < 0) {
+            std::cerr << "ioctl TIOCSCTTY failed: " << strerror(errno) << std::endl;
             exit(1);
         }
 
@@ -73,7 +85,7 @@ void SystemInterface::initialize_pty()
         close(pty_fd);
 
         setenv("TERM", "xterm-256color", 1);
-        execlp("bash", "bash", nullptr);
+        execlp("/bin/sh", "/bin/sh", nullptr);
         std::cerr << "execlp failed: " << strerror(errno) << std::endl;
         exit(1);
     }
