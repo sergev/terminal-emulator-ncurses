@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <ncurses.h>
 #include <signal.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/wait.h>
