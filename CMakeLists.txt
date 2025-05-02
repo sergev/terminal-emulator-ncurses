@@ -31,7 +31,9 @@ add_executable(terminal_emulator
     src/terminal_logic.cpp
     src/curses_interface.cpp
 )
-
+target_include_directories(terminal_emulator PRIVATE
+    ${gtest_SOURCE_DIR}/include
+)
 target_link_libraries(terminal_emulator ${CURSES_LIBRARIES})
 
 # Test executable
