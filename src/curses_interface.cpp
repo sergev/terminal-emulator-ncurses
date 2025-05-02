@@ -33,6 +33,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <cstring>
 #include <iostream>
 
 CursesInterface::CursesInterface(int cols, int rows) : terminal(cols, rows), dirty_lines(rows, true)
@@ -195,7 +196,9 @@ void CursesInterface::process_keyboard_input()
     // Handle control characters (ASCII 0x00–0x1F) directly
     if (ch <= 0x1F) {
         char ctrl_char = static_cast<char>(ch);
-        write(pty_fd, &ctrl_char, 1);
+        if (write(pty_fd, &ctrl_char, 1) < 0) {
+            throw std::runtime_error("PTY closed: child process terminated");
+        }
         return;
     }
 
@@ -294,7 +297,9 @@ void CursesInterface::process_keyboard_input()
 
     std::string input = terminal.process_key(key);
     if (!input.empty()) {
-        write(pty_fd, input.c_str(), input.size());
+        if (write(pty_fd, input.c_str(), input.size()) < 0) {
+            throw std::runtime_error("PTY closed: child process terminated");
+        }
     }
 }
 
