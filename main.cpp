@@ -18,18 +18,25 @@ int main(int argc, char *argv[])
 
         // Main loop
         while (true) {
-            sys_interface.process_keyboard_input();
-            sys_interface.process_pty_input();
-            sys_interface.render_frame();
+            try {
+                sys_interface.process_keyboard_input();
+                sys_interface.process_pty_input();
+                sys_interface.render_frame();
 
-            // Check for terminal resize
-            int new_rows, new_cols;
-            getmaxyx(stdscr, new_rows, new_cols);
-            if (new_rows != sys_interface.get_rows() || new_cols != sys_interface.get_cols()) {
-                sys_interface.resize(new_cols, new_rows);
+                // Check for terminal resize
+                int new_rows, new_cols;
+                getmaxyx(stdscr, new_rows, new_cols);
+                if (new_rows != sys_interface.get_rows() || new_cols != sys_interface.get_cols()) {
+                    sys_interface.resize(new_cols, new_rows);
+                }
+
+                usleep(10000); // 10ms delay
+            } catch (const std::runtime_error &e) {
+                if (std::string(e.what()) == "PTY closed: child process terminated") {
+                    break; // Exit loop when child process terminates
+                }
+                throw; // Re-throw other exceptions
             }
-
-            usleep(10000); // 10ms delay
         }
     } catch (const std::exception &e) {
         endwin();

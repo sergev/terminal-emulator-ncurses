@@ -89,13 +89,6 @@ void SystemInterface::initialize_pty()
         std::cerr << "execlp failed: " << strerror(errno) << std::endl;
         exit(1);
     }
-
-    struct winsize ws = {};
-    ws.ws_col         = terminal.get_cols();
-    ws.ws_row         = terminal.get_rows();
-    if (ioctl(pty_fd, TIOCSWINSZ, &ws) < 0) {
-        std::cerr << "ioctl TIOCSWINSZ failed: " << strerror(errno) << std::endl;
-    }
 }
 
 void SystemInterface::initialize_colors()
@@ -166,6 +159,9 @@ void SystemInterface::process_pty_input()
                     dirty_lines[row] = true;
                 }
             }
+        } else {
+            // Child process closed PTY (EOF or error)
+            throw std::runtime_error("PTY closed: child process terminated");
         }
     }
 }
