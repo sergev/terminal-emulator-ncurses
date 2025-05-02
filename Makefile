@@ -27,7 +27,7 @@ clean:
 
 build:
 	mkdir $@
-	cmake -B$@ -DCMAKE_BUILD_TYPE=RelWithDebInfo $(TEST_ALL)
+	cmake -B$@ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH="/opt/homebrew/opt/ncurses"
 
 debug:
 	mkdir build
