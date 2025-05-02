@@ -41,16 +41,16 @@ const CharAttr TerminalLogic::ansi_colors[] = {
 TerminalLogic::TerminalLogic(int cols, int rows)
     : term_cols(cols), term_rows(rows), state(AnsiState::NORMAL)
 {
-    text_buffer.resize(term_rows, std::vector<Char>(term_cols, { ' ', current_attr }));
+    text_buffer.resize(term_rows, std::vector<Char>(term_cols, { L' ', current_attr }));
 }
 
 void TerminalLogic::resize(int new_cols, int new_rows)
 {
     term_cols = new_cols;
     term_rows = new_rows;
-    text_buffer.resize(term_rows, std::vector<Char>(term_cols, { ' ', current_attr }));
+    text_buffer.resize(term_rows, std::vector<Char>(term_cols, { L' ', current_attr }));
     for (auto &line : text_buffer) {
-        line.resize(term_cols, { ' ', current_attr });
+        line.resize(term_cols, { L' ', current_attr });
     }
     cursor.row = std::min(cursor.row, term_rows - 1);
     cursor.col = std::min(cursor.col, term_cols - 1);
@@ -484,22 +484,22 @@ void TerminalLogic::handle_csi_sequence(const std::string &seq, char final_char,
         if (mode == 0) {
             // Clear from cursor to end of screen
             for (int c = cursor.col; c < term_cols; ++c) {
-                text_buffer[cursor.row][c] = { ' ', current_attr };
+                text_buffer[cursor.row][c] = { L' ', current_attr };
             }
             for (int r = cursor.row + 1; r < term_rows; ++r) {
                 for (int c = 0; c < term_cols; ++c) {
-                    text_buffer[r][c] = { ' ', current_attr };
+                    text_buffer[r][c] = { L' ', current_attr };
                 }
             }
         } else if (mode == 1) {
             // Clear from start of screen to cursor
             for (int r = 0; r < cursor.row; ++r) {
                 for (int c = 0; c < term_cols; ++c) {
-                    text_buffer[r][c] = { ' ', current_attr };
+                    text_buffer[r][c] = { L' ', current_attr };
                 }
             }
             for (int c = 0; c <= cursor.col; ++c) {
-                text_buffer[cursor.row][c] = { ' ', current_attr };
+                text_buffer[cursor.row][c] = { L' ', current_attr };
             }
         } else if (mode == 2) {
             clear_screen();
@@ -513,17 +513,17 @@ void TerminalLogic::handle_csi_sequence(const std::string &seq, char final_char,
         switch (mode) {
         case 0:
             for (int c = cursor.col; c < term_cols; ++c) {
-                text_buffer[cursor.row][c] = { ' ', current_attr };
+                text_buffer[cursor.row][c] = { L' ', current_attr };
             }
             break;
         case 1:
             for (int c = 0; c <= cursor.col; ++c) {
-                text_buffer[cursor.row][c] = { ' ', current_attr };
+                text_buffer[cursor.row][c] = { L' ', current_attr };
             }
             break;
         case 2:
             for (int c = 0; c < term_cols; ++c) {
-                text_buffer[cursor.row][c] = { ' ', current_attr };
+                text_buffer[cursor.row][c] = { L' ', current_attr };
             }
             break;
         default:
@@ -538,7 +538,7 @@ void TerminalLogic::handle_csi_sequence(const std::string &seq, char final_char,
 void TerminalLogic::clear_screen()
 {
     for (int r = 0; r < term_rows; ++r) {
-        text_buffer[r] = std::vector<Char>(term_cols, { ' ', current_attr });
+        text_buffer[r] = std::vector<Char>(term_cols, { L' ', current_attr });
     }
     cursor.row = 0;
     cursor.col = 0;
@@ -554,6 +554,6 @@ void TerminalLogic::reset_state()
 void TerminalLogic::scroll_up()
 {
     text_buffer.erase(text_buffer.begin());
-    text_buffer.push_back(std::vector<Char>(term_cols, { ' ', current_attr }));
+    text_buffer.push_back(std::vector<Char>(term_cols, { L' ', current_attr }));
     cursor.row = term_rows - 1;
 }

@@ -1,4 +1,4 @@
-#include "system_interface.h"
+#include "curses_interface.h"
 
 #include <fcntl.h>
 #include <ncurses.h>
@@ -12,14 +12,14 @@
 #include <algorithm>
 #include <iostream>
 
-SystemInterface::SystemInterface(int cols, int rows) : terminal(cols, rows), dirty_lines(rows, true)
+CursesInterface::CursesInterface(int cols, int rows) : terminal(cols, rows), dirty_lines(rows, true)
 {
     initialize_ncurses();
     initialize_pty();
     initialize_colors();
 }
 
-SystemInterface::~SystemInterface()
+CursesInterface::~CursesInterface()
 {
     if (child_pid > 0) {
         kill(child_pid, SIGTERM);
@@ -31,7 +31,7 @@ SystemInterface::~SystemInterface()
     endwin();
 }
 
-void SystemInterface::initialize_ncurses()
+void CursesInterface::initialize_ncurses()
 {
     initscr();
     raw(); // Use raw mode to disable signal generation for Ctrl+C
@@ -42,7 +42,7 @@ void SystemInterface::initialize_ncurses()
     use_default_colors();
 }
 
-void SystemInterface::initialize_pty()
+void CursesInterface::initialize_pty()
 {
     pty_fd = posix_openpt(O_RDWR | O_NOCTTY);
     if (pty_fd < 0) {
@@ -89,7 +89,7 @@ void SystemInterface::initialize_pty()
     }
 }
 
-void SystemInterface::initialize_colors()
+void CursesInterface::initialize_colors()
 {
     for (int fg = 0; fg < 8; ++fg) {
         for (int bg = 0; bg < 8; ++bg) {
@@ -98,7 +98,7 @@ void SystemInterface::initialize_colors()
     }
 }
 
-int SystemInterface::get_color_pair(const CharAttr &attr)
+int CursesInterface::get_color_pair(const CharAttr &attr)
 {
     int fg = 7; // Default to white
     int bg = 0; // Default to black
@@ -139,7 +139,7 @@ int SystemInterface::get_color_pair(const CharAttr &attr)
     return COLOR_PAIR(fg * 8 + bg + 1);
 }
 
-void SystemInterface::process_pty_input()
+void CursesInterface::process_pty_input()
 {
     fd_set read_fds;
     FD_ZERO(&read_fds);
@@ -162,7 +162,7 @@ void SystemInterface::process_pty_input()
     }
 }
 
-void SystemInterface::process_keyboard_input()
+void CursesInterface::process_keyboard_input()
 {
     wint_t ch;
     int status = get_wch(&ch);
@@ -275,7 +275,7 @@ void SystemInterface::process_keyboard_input()
     }
 }
 
-void SystemInterface::render_frame()
+void CursesInterface::render_frame()
 {
     const auto &text_buffer = terminal.get_text_buffer();
     for (size_t row = 0; row < text_buffer.size(); ++row) {
@@ -324,7 +324,7 @@ void SystemInterface::render_frame()
     refresh();
 }
 
-void SystemInterface::resize(int new_cols, int new_rows)
+void CursesInterface::resize(int new_cols, int new_rows)
 {
     terminal.resize(new_cols, new_rows);
     dirty_lines.assign(new_rows, true);
@@ -339,12 +339,12 @@ void SystemInterface::resize(int new_cols, int new_rows)
     wresize(stdscr, new_rows, new_cols);
 }
 
-int SystemInterface::get_cols() const
+int CursesInterface::get_cols() const
 {
     return terminal.get_cols();
 }
 
-int SystemInterface::get_rows() const
+int CursesInterface::get_rows() const
 {
     return terminal.get_rows();
 }

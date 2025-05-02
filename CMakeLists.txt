@@ -29,7 +29,7 @@ enable_testing()
 add_executable(terminal_emulator
     main.cpp
     terminal_logic.cpp
-    system_interface.cpp
+    curses_interface.cpp
 )
 
 target_link_libraries(terminal_emulator ${CURSES_LIBRARIES})

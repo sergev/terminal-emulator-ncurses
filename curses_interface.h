@@ -1,14 +1,14 @@
-#ifndef SYSTEM_INTERFACE_H
-#define SYSTEM_INTERFACE_H
+#ifndef CURSES_INTERFACE_H
+#define CURSES_INTERFACE_H
 
 #include <vector>
 
 #include "terminal_logic.h"
 
-class SystemInterface {
+class CursesInterface {
 public:
-    SystemInterface(int cols = 80, int rows = 24);
-    ~SystemInterface();
+    CursesInterface(int cols = 80, int rows = 24);
+    ~CursesInterface();
     void process_pty_input();
     void process_keyboard_input();
     void render_frame();
@@ -28,4 +28,4 @@ private:
     int get_color_pair(const CharAttr &attr);
 };
 
-#endif // SYSTEM_INTERFACE_H
+#endif // CURSES_INTERFACE_H
