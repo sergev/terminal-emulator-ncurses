@@ -45,3 +45,6 @@ target_link_libraries(unit_tests ${CURSES_LIBRARIES} GTest::gtest_main)
 # Add tests to CTest
 include(GoogleTest)
 gtest_discover_tests(unit_tests)
+
+# Installation
+install(TARGETS terminal_emulator DESTINATION bin)

@@ -1,4 +1,29 @@
+//
+// ANSI logic of the terminal emulator.
+//
+// Copyright (c) 2025 Serge Vakulenko
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
 #include "terminal_logic.h"
+
+//#include <unicode/uchar.h>
 
 #include <algorithm>
 #include <cctype>
@@ -301,7 +326,14 @@ std::string TerminalLogic::process_key(const KeyInput &key)
             }
             input = std::string(1, base_char);
         } else {
-            input = wchar_to_utf8(key.character);
+            auto ch = key.character;
+#if 0
+            if (key.mod_shift) {
+                // Convert Unicode character to uppercase
+                ch = u_toupper(ch);
+            }
+#endif
+            input = wchar_to_utf8(ch);
         }
         break;
     }
@@ -316,16 +348,6 @@ const std::vector<std::vector<Char>> &TerminalLogic::get_text_buffer() const
 const Cursor &TerminalLogic::get_cursor() const
 {
     return cursor;
-}
-
-int TerminalLogic::get_cols() const
-{
-    return term_cols;
-}
-
-int TerminalLogic::get_rows() const
-{
-    return term_rows;
 }
 
 void TerminalLogic::parse_ansi_sequence(const std::string &seq, std::vector<int> &dirty_rows)
