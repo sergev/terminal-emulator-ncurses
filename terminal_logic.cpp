@@ -1,26 +1,3 @@
-//
-// ANSI logic of the terminal emulator.
-//
-// Copyright (c) 2025 Serge Vakulenko
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-//
 #include "terminal_logic.h"
 
 #include <algorithm>
@@ -156,7 +133,7 @@ std::vector<int> TerminalLogic::process_input(const char *buffer, size_t length)
                 // std::cerr << "Received [, transitioning to CSI state" << std::endl;
             } else if (c == 'c') {
                 // std::cerr << "Received ESC c, processing reset" << std::endl;
-                parse_ansi_sequence("", c, dirty_rows);
+                parse_ansi_sequence("c", dirty_rows);
                 state = AnsiState::NORMAL;
                 ansi_seq.clear();
             } else {
@@ -172,7 +149,7 @@ std::vector<int> TerminalLogic::process_input(const char *buffer, size_t length)
             ansi_seq += c;
             if (std::isalpha(c)) {
                 // std::cerr << "Received CSI final char: " << c << std::endl;
-                parse_ansi_sequence(ansi_seq, c, dirty_rows);
+                parse_ansi_sequence(ansi_seq, dirty_rows);
                 state = AnsiState::NORMAL;
                 ansi_seq.clear();
             }
@@ -351,9 +328,13 @@ int TerminalLogic::get_rows() const
     return term_rows;
 }
 
-void TerminalLogic::parse_ansi_sequence(const std::string &seq, char final_char,
-                                        std::vector<int> &dirty_rows)
+void TerminalLogic::parse_ansi_sequence(const std::string &seq, std::vector<int> &dirty_rows)
 {
+    if (seq.empty()) {
+        return;
+    }
+
+    char final_char = seq.back();
     if (final_char == 'c') {
         reset_state();
         for (int r = 0; r < term_rows; ++r) {
@@ -362,20 +343,21 @@ void TerminalLogic::parse_ansi_sequence(const std::string &seq, char final_char,
         return;
     }
 
-    if (seq.empty() || seq[0] != '[') {
-        // std::cerr << "Invalid CSI sequence: " << seq << final_char << std::endl;
+    if (seq[0] != '[') {
+        // std::cerr << "Invalid CSI sequence: " << seq << std::endl;
         return;
     }
 
-    // std::cerr << "Processing CSI sequence: " << seq << final_char << std::endl;
-
+    // std::cerr << "Processing CSI sequence: " << seq << std::endl;
     std::vector<int> params;
     std::string param_str;
 
-    for (size_t i = 1; i < seq.size() - 1; ++i) {
-        if (std::isdigit(seq[i])) {
-            param_str += seq[i];
-        } else if (seq[i] == ';' || i == seq.size() - 2) {
+    // Process all characters up to the final character
+    for (size_t i = 1; i < seq.size(); ++i) {
+        char c = seq[i];
+        if (std::isdigit(c)) {
+            param_str += c;
+        } else if (c == ';' || std::isalpha(c)) {
             if (!param_str.empty()) {
                 try {
                     params.push_back(std::stoi(param_str));
@@ -388,8 +370,13 @@ void TerminalLogic::parse_ansi_sequence(const std::string &seq, char final_char,
             } else {
                 params.push_back(0);
             }
+            if (std::isalpha(c)) {
+                break; // Final character reached
+            }
         }
     }
+
+    // Handle any remaining parameter
     if (!param_str.empty()) {
         try {
             params.push_back(std::stoi(param_str));
@@ -400,11 +387,11 @@ void TerminalLogic::parse_ansi_sequence(const std::string &seq, char final_char,
         }
     }
 
-    int mode = params.empty() ? 0 : params[0];
     handle_csi_sequence(seq, final_char, params);
 
     // Track dirty rows based on the sequence
     if (final_char == 'J') {
+        int mode = params.empty() ? 0 : params[0];
         if (mode == 0) {
             for (int r = cursor.row; r < term_rows; ++r) {
                 dirty_rows.push_back(r);

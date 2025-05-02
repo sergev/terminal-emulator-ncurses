@@ -20,7 +20,7 @@ TEST_F(TerminalLogicTest, EscCResetsStateAndClearsScreen)
     logic->text_buffer[5][10] = { L'x', logic->current_attr };
 
     std::vector<int> dirty_rows;
-    logic->parse_ansi_sequence("", 'c', dirty_rows);
+    logic->parse_ansi_sequence("c", dirty_rows);
 
     EXPECT_EQ(logic->current_attr.fg_r, 255);
     EXPECT_EQ(logic->current_attr.fg_g, 255);
@@ -49,7 +49,7 @@ TEST_F(TerminalLogicTest, EscKClearsLine)
 
     // Test mode 0: clear from cursor to end
     std::vector<int> dirty_rows;
-    logic->parse_ansi_sequence("[0", 'K', dirty_rows);
+    logic->parse_ansi_sequence("[0K", dirty_rows);
     for (int c = 0; c < 10; ++c) {
         EXPECT_EQ(logic->text_buffer[5][c].ch, L'x');
     }
@@ -63,7 +63,7 @@ TEST_F(TerminalLogicTest, EscKClearsLine)
         logic->text_buffer[5][c] = { L'x', logic->current_attr };
     }
     dirty_rows.clear();
-    logic->parse_ansi_sequence("[1", 'K', dirty_rows);
+    logic->parse_ansi_sequence("[1K", dirty_rows);
     for (int c = 0; c <= 10; ++c) {
         EXPECT_EQ(logic->text_buffer[5][c].ch, L' ');
     }
@@ -77,7 +77,7 @@ TEST_F(TerminalLogicTest, EscKClearsLine)
         logic->text_buffer[5][c] = { L'x', logic->current_attr };
     }
     dirty_rows.clear();
-    logic->parse_ansi_sequence("[2", 'K', dirty_rows);
+    logic->parse_ansi_sequence("[2K", dirty_rows);
     for (int c = 0; c < logic->get_cols(); ++c) {
         EXPECT_EQ(logic->text_buffer[5][c].ch, L' ');
     }
@@ -89,19 +89,19 @@ TEST_F(TerminalLogicTest, EscMSetsColors)
 {
     std::vector<int> dirty_rows;
 
-    logic->parse_ansi_sequence("[31", 'm', dirty_rows); // Red foreground
+    logic->parse_ansi_sequence("[31m", dirty_rows); // Red foreground
     EXPECT_EQ(logic->current_attr.fg_r, 255);
     EXPECT_EQ(logic->current_attr.fg_g, 0);
     EXPECT_EQ(logic->current_attr.fg_b, 0);
     EXPECT_TRUE(dirty_rows.empty());
 
-    logic->parse_ansi_sequence("[41", 'm', dirty_rows); // Red background
+    logic->parse_ansi_sequence("[41m", dirty_rows); // Red background
     EXPECT_EQ(logic->current_attr.bg_r, 255);
     EXPECT_EQ(logic->current_attr.bg_g, 0);
     EXPECT_EQ(logic->current_attr.bg_b, 0);
     EXPECT_TRUE(dirty_rows.empty());
 
-    logic->parse_ansi_sequence("[0", 'm', dirty_rows); // Reset
+    logic->parse_ansi_sequence("[0m", dirty_rows); // Reset
     EXPECT_EQ(logic->current_attr.fg_r, 255);
     EXPECT_EQ(logic->current_attr.fg_g, 255);
     EXPECT_EQ(logic->current_attr.fg_b, 255);
@@ -117,31 +117,31 @@ TEST_F(TerminalLogicTest, CursorMovement)
     logic->cursor = { 5, 10 };
     std::vector<int> dirty_rows;
 
-    logic->parse_ansi_sequence("[3;5", 'H', dirty_rows); // Move to row 3, col 5
+    logic->parse_ansi_sequence("[3;5H", dirty_rows); // Move to row 3, col 5
     EXPECT_EQ(logic->cursor.row, 2);
     EXPECT_EQ(logic->cursor.col, 4);
     EXPECT_EQ(dirty_rows, std::vector<int>({ 2 }));
 
     dirty_rows.clear();
-    logic->parse_ansi_sequence("[2", 'A', dirty_rows); // Up 2
+    logic->parse_ansi_sequence("[2A", dirty_rows); // Up 2
     EXPECT_EQ(logic->cursor.row, 0);
     EXPECT_EQ(logic->cursor.col, 4);
     EXPECT_EQ(dirty_rows, std::vector<int>({ 0 }));
 
     dirty_rows.clear();
-    logic->parse_ansi_sequence("[3", 'B', dirty_rows); // Down 3
+    logic->parse_ansi_sequence("[3B", dirty_rows); // Down 3
     EXPECT_EQ(logic->cursor.row, 3);
     EXPECT_EQ(logic->cursor.col, 4);
     EXPECT_EQ(dirty_rows, std::vector<int>({ 3 }));
 
     dirty_rows.clear();
-    logic->parse_ansi_sequence("[5", 'C', dirty_rows); // Right 5
+    logic->parse_ansi_sequence("[5C", dirty_rows); // Right 5
     EXPECT_EQ(logic->cursor.row, 3);
     EXPECT_EQ(logic->cursor.col, 9);
     EXPECT_EQ(dirty_rows, std::vector<int>({ 3 }));
 
     dirty_rows.clear();
-    logic->parse_ansi_sequence("[2", 'D', dirty_rows); // Left 2
+    logic->parse_ansi_sequence("[2D", dirty_rows); // Left 2
     EXPECT_EQ(logic->cursor.row, 3);
     EXPECT_EQ(logic->cursor.col, 7);
     EXPECT_EQ(dirty_rows, std::vector<int>({ 3 }));
