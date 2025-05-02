@@ -96,6 +96,9 @@ TEST_F(TerminalLogicTest, EscMSetsColors)
     EXPECT_TRUE(dirty_rows.empty());
 
     logic->parse_ansi_sequence("[41m", dirty_rows); // Red background
+    EXPECT_EQ(logic->current_attr.fg_r, 255);       // Foreground should remain red
+    EXPECT_EQ(logic->current_attr.fg_g, 0);
+    EXPECT_EQ(logic->current_attr.fg_b, 0);
     EXPECT_EQ(logic->current_attr.bg_r, 255);
     EXPECT_EQ(logic->current_attr.bg_g, 0);
     EXPECT_EQ(logic->current_attr.bg_b, 0);
