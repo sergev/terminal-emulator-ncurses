@@ -34,7 +34,7 @@ SystemInterface::~SystemInterface()
 void SystemInterface::initialize_ncurses()
 {
     initscr();
-    cbreak();
+    raw(); // Use raw mode to disable signal generation for Ctrl+C
     noecho();
     keypad(stdscr, TRUE);
     nodelay(stdscr, TRUE); // Non-blocking input
@@ -59,7 +59,6 @@ void SystemInterface::initialize_pty()
         std::cerr << "fork failed: " << strerror(errno) << std::endl;
         exit(1);
     } else if (child_pid == 0) {
-        // Create a new session to enable job control
         if (setsid() < 0) {
             std::cerr << "setsid failed: " << strerror(errno) << std::endl;
             exit(1);
@@ -72,7 +71,6 @@ void SystemInterface::initialize_pty()
             exit(1);
         }
 
-        // Set the PTY as the controlling terminal
         if (ioctl(slave_fd, TIOCSCTTY, 0) < 0) {
             std::cerr << "ioctl TIOCSCTTY failed: " << strerror(errno) << std::endl;
             exit(1);
@@ -93,7 +91,6 @@ void SystemInterface::initialize_pty()
 
 void SystemInterface::initialize_colors()
 {
-    // Initialize basic ANSI color pairs
     for (int fg = 0; fg < 8; ++fg) {
         for (int bg = 0; bg < 8; ++bg) {
             init_pair(fg * 8 + bg + 1, fg, bg);
@@ -160,7 +157,6 @@ void SystemInterface::process_pty_input()
                 }
             }
         } else {
-            // Child process closed PTY (EOF or error)
             throw std::runtime_error("PTY closed: child process terminated");
         }
     }
@@ -172,6 +168,13 @@ void SystemInterface::process_keyboard_input()
     int status = get_wch(&ch);
     if (status == ERR)
         return;
+
+    // Handle control characters (ASCII 0x00–0x1F) directly
+    if (ch <= 0x1F) {
+        char ctrl_char = static_cast<char>(ch);
+        write(pty_fd, &ctrl_char, 1);
+        return;
+    }
 
     KeyInput key;
     key.character = ch;
@@ -258,16 +261,10 @@ void SystemInterface::process_keyboard_input()
         key.code = KeyCode::F12;
         break;
     default:
-        if (ch >= 32 && ch <= 126) {
+        if (ch >= 32) {
             key.code = KeyCode::CHARACTER;
             if (ch >= 'A' && ch <= 'Z')
                 key.mod_shift = true;
-            else if (ch >= 0x1 && ch <= 0x1A) {
-                key.mod_ctrl  = true;
-                key.character = 'a' + ch - 1;
-            }
-        } else if (ch > 126) {
-            key.code = KeyCode::CHARACTER; // UTF-8 characters
         }
         break;
     }

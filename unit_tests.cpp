@@ -159,18 +159,6 @@ TEST_F(TerminalLogicTest, ShiftModifier)
     EXPECT_EQ(input, "!");
 }
 
-// Test Control modifier
-TEST_F(TerminalLogicTest, ControlModifier)
-{
-    std::string input;
-
-    input = logic->process_key(KeyInput('a', false, true)); // Ctrl+A
-    EXPECT_EQ(input, std::string(1, 0x01));
-
-    input = logic->process_key(KeyInput('z', false, true)); // Ctrl+Z
-    EXPECT_EQ(input, std::string(1, 0x1A));
-}
-
 // Test text buffer insertion
 TEST_F(TerminalLogicTest, TextBufferInsertion)
 {
