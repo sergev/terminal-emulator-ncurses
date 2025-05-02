@@ -46,7 +46,7 @@ enum class KeyCode {
     PAGEUP, PAGEDOWN,
     F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
     CHARACTER, // For printable characters
-    // clang-format off
+    // clang-format on
 };
 
 // Structure for key input
@@ -57,8 +57,10 @@ struct KeyInput {
     bool mod_ctrl{};
 
     KeyInput() = default;
-    KeyInput(unsigned c, bool shift, bool ctrl) :
-        code(KeyCode::CHARACTER), character(c), mod_shift(shift), mod_ctrl(ctrl) {}
+    KeyInput(unsigned c, bool shift, bool ctrl)
+        : code(KeyCode::CHARACTER), character(c), mod_shift(shift), mod_ctrl(ctrl)
+    {
+    }
 };
 
 // Structure for character attributes
@@ -85,7 +87,6 @@ struct TextSpan {
     std::wstring text; // Use wstring for Unicode
     CharAttr attr;
     int start_col;
-    void *texture = nullptr; // Opaque pointer for SystemInterface
 };
 
 // Cursor position
@@ -105,6 +106,8 @@ public:
     std::string process_key(const KeyInput &key);
     const std::vector<std::vector<Char>> &get_text_buffer() const;
     const Cursor &get_cursor() const;
+    int get_cols() const;
+    int get_rows() const;
 
 private:
     // Declare test cases as friends
@@ -119,6 +122,7 @@ private:
     FRIEND_TEST(TerminalLogicTest, ClearScreenEsc0J);
     FRIEND_TEST(TerminalLogicTest, ClearScreenEsc1J);
     FRIEND_TEST(TerminalLogicTest, ClearScreenEsc2J);
+    FRIEND_TEST(TerminalLogicTest, Utf8Input);
 
     // Terminal state
     int term_cols;
@@ -133,7 +137,7 @@ private:
     static const CharAttr ansi_colors[];
 
     // ANSI parsing methods
-    void parse_ansi_sequence(const std::string &seq, char final_char);
+    void parse_ansi_sequence(const std::string &seq, char final_char, std::vector<int> &dirty_rows);
     void handle_csi_sequence(const std::string &seq, char final_char,
                              const std::vector<int> &params);
 

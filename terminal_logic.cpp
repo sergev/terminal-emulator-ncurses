@@ -156,12 +156,9 @@ std::vector<int> TerminalLogic::process_input(const char *buffer, size_t length)
                 // std::cerr << "Received [, transitioning to CSI state" << std::endl;
             } else if (c == 'c') {
                 // std::cerr << "Received ESC c, processing reset" << std::endl;
-                parse_ansi_sequence("", c);
+                parse_ansi_sequence("", c, dirty_rows);
                 state = AnsiState::NORMAL;
                 ansi_seq.clear();
-                for (int r = 0; r < term_rows; ++r) {
-                    dirty_rows.push_back(r);
-                }
             } else {
                 // std::cerr << "Unknown ESC sequence char: " << (int)c << ", resetting to NORMAL"
                 //           << std::endl;
@@ -175,10 +172,9 @@ std::vector<int> TerminalLogic::process_input(const char *buffer, size_t length)
             ansi_seq += c;
             if (std::isalpha(c)) {
                 // std::cerr << "Received CSI final char: " << c << std::endl;
-                parse_ansi_sequence(ansi_seq, c);
+                parse_ansi_sequence(ansi_seq, c, dirty_rows);
                 state = AnsiState::NORMAL;
                 ansi_seq.clear();
-                dirty_rows.push_back(cursor.row);
             }
             ++i;
             break;
@@ -202,7 +198,12 @@ static std::string wchar_to_utf8(wchar_t wc)
         utf8 += static_cast<char>(0xE0 | ((wc >> 12) & 0x0F));
         utf8 += static_cast<char>(0x80 | ((wc >> 6) & 0x3F));
         utf8 += static_cast<char>(0x80 | (wc & 0x3F));
-    } // Add handling for wc > 0xFFFF if needed
+    } else {
+        utf8 += static_cast<char>(0xF0 | ((wc >> 18) & 0x07));
+        utf8 += static_cast<char>(0x80 | ((wc >> 12) & 0x3F));
+        utf8 += static_cast<char>(0x80 | ((wc >> 6) & 0x3F));
+        utf8 += static_cast<char>(0x80 | (wc & 0x3F));
+    }
     return utf8;
 }
 
@@ -212,7 +213,7 @@ std::string TerminalLogic::process_key(const KeyInput &key)
     // std::cerr << "Key processed: Keycode=" << key.code << ", Modifiers=" << modifiers <<
     // std::endl;
 
-    // Map SDL keycodes to terminal inputs
+    // Map keycodes to terminal inputs
     switch (key.code) {
     case KeyCode::UNKNOWN:
         // No input.
@@ -323,7 +324,6 @@ std::string TerminalLogic::process_key(const KeyInput &key)
             }
             input = std::string(1, base_char);
         } else {
-            // TODO: mod_shift
             input = wchar_to_utf8(key.character);
         }
         break;
@@ -341,10 +341,24 @@ const Cursor &TerminalLogic::get_cursor() const
     return cursor;
 }
 
-void TerminalLogic::parse_ansi_sequence(const std::string &seq, char final_char)
+int TerminalLogic::get_cols() const
+{
+    return term_cols;
+}
+
+int TerminalLogic::get_rows() const
+{
+    return term_rows;
+}
+
+void TerminalLogic::parse_ansi_sequence(const std::string &seq, char final_char,
+                                        std::vector<int> &dirty_rows)
 {
     if (final_char == 'c') {
         reset_state();
+        for (int r = 0; r < term_rows; ++r) {
+            dirty_rows.push_back(r);
+        }
         return;
     }
 
@@ -386,7 +400,30 @@ void TerminalLogic::parse_ansi_sequence(const std::string &seq, char final_char)
         }
     }
 
+    int mode = params.empty() ? 0 : params[0];
     handle_csi_sequence(seq, final_char, params);
+
+    // Track dirty rows based on the sequence
+    if (final_char == 'J') {
+        if (mode == 0) {
+            for (int r = cursor.row; r < term_rows; ++r) {
+                dirty_rows.push_back(r);
+            }
+        } else if (mode == 1) {
+            for (int r = 0; r <= cursor.row; ++r) {
+                dirty_rows.push_back(r);
+            }
+        } else if (mode == 2) {
+            for (int r = 0; r < term_rows; ++r) {
+                dirty_rows.push_back(r);
+            }
+        }
+    } else if (final_char == 'K') {
+        dirty_rows.push_back(cursor.row);
+    } else if (final_char == 'H' || final_char == 'A' || final_char == 'B' || final_char == 'C' ||
+               final_char == 'D') {
+        dirty_rows.push_back(cursor.row);
+    }
 }
 
 void TerminalLogic::handle_csi_sequence(const std::string &seq, char final_char,

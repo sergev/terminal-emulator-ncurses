@@ -2,12 +2,12 @@
 
 #include <fcntl.h>
 #include <ncurses.h>
+#include <signal.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
-#include <signal.h>
 
 #include <algorithm>
 #include <iostream>
@@ -79,8 +79,8 @@ void SystemInterface::initialize_pty()
     }
 
     struct winsize ws = {};
-    ws.ws_col         = terminal.term_cols;
-    ws.ws_row         = terminal.term_rows;
+    ws.ws_col         = terminal.get_cols();
+    ws.ws_row         = terminal.get_rows();
     if (ioctl(pty_fd, TIOCSWINSZ, &ws) < 0) {
         std::cerr << "ioctl TIOCSWINSZ failed: " << strerror(errno) << std::endl;
     }
@@ -88,10 +88,10 @@ void SystemInterface::initialize_pty()
 
 void SystemInterface::initialize_colors()
 {
+    // Initialize basic ANSI color pairs
     for (int fg = 0; fg < 8; ++fg) {
         for (int bg = 0; bg < 8; ++bg) {
-            int pair = fg * 8 + bg + 1;
-            init_pair(pair, fg, bg);
+            init_pair(fg * 8 + bg + 1, fg, bg);
         }
     }
 }
@@ -148,10 +148,11 @@ void SystemInterface::process_pty_input()
         char buffer[1024];
         ssize_t bytes_read = read(pty_fd, buffer, sizeof(buffer));
         if (bytes_read > 0) {
-            terminal.process_input(buffer, bytes_read);
-            // Mark all rows dirty since parse_ansi_sequence doesn't return dirty_rows
-            for (size_t i = 0; i < dirty_lines.size(); ++i) {
-                dirty_lines[i] = true;
+            std::vector<int> dirty_rows = terminal.process_input(buffer, bytes_read);
+            for (int row : dirty_rows) {
+                if (row >= 0 && static_cast<size_t>(row) < dirty_lines.size()) {
+                    dirty_lines[row] = true;
+                }
             }
         }
     }
@@ -251,7 +252,6 @@ void SystemInterface::process_keyboard_input()
     default:
         if (ch >= 32 && ch <= 126) {
             key.code = KeyCode::CHARACTER;
-            // Detect Shift/Ctrl (simplified; ncurses doesn't provide direct modifier state)
             if (ch >= 'A' && ch <= 'Z')
                 key.mod_shift = true;
             else if (ch >= 0x1 && ch <= 0x1A) {
@@ -285,9 +285,9 @@ void SystemInterface::render_frame()
         CharAttr current_attr = text_buffer[row][0].attr;
         int start_col         = 0;
 
-        for (int col = 0; col < terminal.term_cols; ++col) {
+        for (int col = 0; col < terminal.get_cols(); ++col) {
             const Char &ch = text_buffer[row][col];
-            if (ch.attr == current_attr && col < terminal.term_cols - 1) {
+            if (ch.attr == current_attr && col < terminal.get_cols() - 1) {
                 current_text += ch.ch;
             } else {
                 if (!current_text.empty()) {
@@ -309,7 +309,7 @@ void SystemInterface::render_frame()
 
     const Cursor &cursor = terminal.get_cursor();
     if (cursor.row >= 0 && cursor.row < static_cast<int>(text_buffer.size()) && cursor.col >= 0 &&
-        cursor.col < terminal.term_cols) {
+        cursor.col < terminal.get_cols()) {
         move(cursor.row, cursor.col);
         curs_set(1);
     } else {
@@ -336,10 +336,10 @@ void SystemInterface::resize(int new_cols, int new_rows)
 
 int SystemInterface::get_cols() const
 {
-    return terminal.term_cols;
+    return terminal.get_cols();
 }
 
 int SystemInterface::get_rows() const
 {
-    return terminal.term_rows;
+    return terminal.get_rows();
 }

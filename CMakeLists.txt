@@ -3,6 +3,7 @@ project(terminal_emulator)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_options(-DNCURSES_WIDECHAR)
 
 # Find ncurses
 find_package(Curses REQUIRED)
@@ -39,7 +40,8 @@ add_executable(unit_tests
     terminal_logic.cpp
 )
 
-target_link_libraries(unit_tests ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES} ${CURSES_LIBRARIES})
+target_link_libraries(unit_tests ${CURSES_LIBRARIES} GTest::gtest_main)
 
-enable_testing()
-add_test(NAME TerminalLogicTest COMMAND unit_tests)
+# Add tests to CTest
+include(GoogleTest)
+gtest_discover_tests(unit_tests)

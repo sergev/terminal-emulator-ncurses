@@ -19,105 +19,132 @@ TEST_F(TerminalLogicTest, EscCResetsStateAndClearsScreen)
     logic->cursor             = { 5, 10 };
     logic->text_buffer[5][10] = { L'x', logic->current_attr };
 
-    logic->parse_ansi_sequence("", 'c');
+    std::vector<int> dirty_rows;
+    logic->parse_ansi_sequence("", 'c', dirty_rows);
 
     EXPECT_EQ(logic->current_attr.fg_r, 255);
     EXPECT_EQ(logic->current_attr.fg_g, 255);
     EXPECT_EQ(logic->current_attr.fg_b, 255);
     EXPECT_EQ(logic->cursor.row, 0);
     EXPECT_EQ(logic->cursor.col, 0);
-    for (int r = 0; r < 24; ++r) {
-        for (int c = 0; c < 80; ++c) {
+    for (int r = 0; r < logic->get_rows(); ++r) {
+        for (int c = 0; c < logic->get_cols(); ++c) {
             EXPECT_EQ(logic->text_buffer[r][c].ch, L' ');
         }
     }
+    std::vector<int> expected_dirty_rows;
+    for (int r = 0; r < logic->get_rows(); ++r) {
+        expected_dirty_rows.push_back(r);
+    }
+    EXPECT_EQ(dirty_rows, expected_dirty_rows);
 }
 
 // Test ESC [ K (erase in line)
 TEST_F(TerminalLogicTest, EscKClearsLine)
 {
     logic->cursor = { 5, 10 };
-    for (int c = 0; c < 80; ++c) {
+    for (int c = 0; c < logic->get_cols(); ++c) {
         logic->text_buffer[5][c] = { L'x', logic->current_attr };
     }
 
     // Test mode 0: clear from cursor to end
-    logic->parse_ansi_sequence("[0", 'K');
+    std::vector<int> dirty_rows;
+    logic->parse_ansi_sequence("[0", 'K', dirty_rows);
     for (int c = 0; c < 10; ++c) {
         EXPECT_EQ(logic->text_buffer[5][c].ch, L'x');
     }
-    for (int c = 10; c < 80; ++c) {
+    for (int c = 10; c < logic->get_cols(); ++c) {
         EXPECT_EQ(logic->text_buffer[5][c].ch, L' ');
     }
+    EXPECT_EQ(dirty_rows, std::vector<int>({ 5 }));
 
     // Test mode 1: clear from start to cursor
-    for (int c = 0; c < 80; ++c) {
+    for (int c = 0; c < logic->get_cols(); ++c) {
         logic->text_buffer[5][c] = { L'x', logic->current_attr };
     }
-    logic->parse_ansi_sequence("[1", 'K');
+    dirty_rows.clear();
+    logic->parse_ansi_sequence("[1", 'K', dirty_rows);
     for (int c = 0; c <= 10; ++c) {
         EXPECT_EQ(logic->text_buffer[5][c].ch, L' ');
     }
-    for (int c = 11; c < 80; ++c) {
+    for (int c = 11; c < logic->get_cols(); ++c) {
         EXPECT_EQ(logic->text_buffer[5][c].ch, L'x');
     }
+    EXPECT_EQ(dirty_rows, std::vector<int>({ 5 }));
 
     // Test mode 2: clear entire line
-    for (int c = 0; c < 80; ++c) {
+    for (int c = 0; c < logic->get_cols(); ++c) {
         logic->text_buffer[5][c] = { L'x', logic->current_attr };
     }
-    logic->parse_ansi_sequence("[2", 'K');
-    for (int c = 0; c < 80; ++c) {
+    dirty_rows.clear();
+    logic->parse_ansi_sequence("[2", 'K', dirty_rows);
+    for (int c = 0; c < logic->get_cols(); ++c) {
         EXPECT_EQ(logic->text_buffer[5][c].ch, L' ');
     }
+    EXPECT_EQ(dirty_rows, std::vector<int>({ 5 }));
 }
 
 // Test ESC [ m (SGR)
 TEST_F(TerminalLogicTest, EscMSetsColors)
 {
-    logic->parse_ansi_sequence("[31", 'm'); // Red foreground
+    std::vector<int> dirty_rows;
+
+    logic->parse_ansi_sequence("[31", 'm', dirty_rows); // Red foreground
     EXPECT_EQ(logic->current_attr.fg_r, 255);
     EXPECT_EQ(logic->current_attr.fg_g, 0);
     EXPECT_EQ(logic->current_attr.fg_b, 0);
+    EXPECT_TRUE(dirty_rows.empty());
 
-    logic->parse_ansi_sequence("[41", 'm'); // Red background
+    logic->parse_ansi_sequence("[41", 'm', dirty_rows); // Red background
     EXPECT_EQ(logic->current_attr.bg_r, 255);
     EXPECT_EQ(logic->current_attr.bg_g, 0);
     EXPECT_EQ(logic->current_attr.bg_b, 0);
+    EXPECT_TRUE(dirty_rows.empty());
 
-    logic->parse_ansi_sequence("[0", 'm'); // Reset
+    logic->parse_ansi_sequence("[0", 'm', dirty_rows); // Reset
     EXPECT_EQ(logic->current_attr.fg_r, 255);
     EXPECT_EQ(logic->current_attr.fg_g, 255);
     EXPECT_EQ(logic->current_attr.fg_b, 255);
     EXPECT_EQ(logic->current_attr.bg_r, 0);
     EXPECT_EQ(logic->current_attr.bg_g, 0);
     EXPECT_EQ(logic->current_attr.bg_b, 0);
+    EXPECT_TRUE(dirty_rows.empty());
 }
 
 // Test cursor movement
 TEST_F(TerminalLogicTest, CursorMovement)
 {
     logic->cursor = { 5, 10 };
+    std::vector<int> dirty_rows;
 
-    logic->parse_ansi_sequence("[3;5", 'H'); // Move to row 3, col 5
+    logic->parse_ansi_sequence("[3;5", 'H', dirty_rows); // Move to row 3, col 5
     EXPECT_EQ(logic->cursor.row, 2);
     EXPECT_EQ(logic->cursor.col, 4);
+    EXPECT_EQ(dirty_rows, std::vector<int>({ 2 }));
 
-    logic->parse_ansi_sequence("[2", 'A'); // Up 2
+    dirty_rows.clear();
+    logic->parse_ansi_sequence("[2", 'A', dirty_rows); // Up 2
     EXPECT_EQ(logic->cursor.row, 0);
     EXPECT_EQ(logic->cursor.col, 4);
+    EXPECT_EQ(dirty_rows, std::vector<int>({ 0 }));
 
-    logic->parse_ansi_sequence("[3", 'B'); // Down 3
+    dirty_rows.clear();
+    logic->parse_ansi_sequence("[3", 'B', dirty_rows); // Down 3
     EXPECT_EQ(logic->cursor.row, 3);
     EXPECT_EQ(logic->cursor.col, 4);
+    EXPECT_EQ(dirty_rows, std::vector<int>({ 3 }));
 
-    logic->parse_ansi_sequence("[5", 'C'); // Right 5
+    dirty_rows.clear();
+    logic->parse_ansi_sequence("[5", 'C', dirty_rows); // Right 5
     EXPECT_EQ(logic->cursor.row, 3);
     EXPECT_EQ(logic->cursor.col, 9);
+    EXPECT_EQ(dirty_rows, std::vector<int>({ 3 }));
 
-    logic->parse_ansi_sequence("[2", 'D'); // Left 2
+    dirty_rows.clear();
+    logic->parse_ansi_sequence("[2", 'D', dirty_rows); // Left 2
     EXPECT_EQ(logic->cursor.row, 3);
     EXPECT_EQ(logic->cursor.col, 7);
+    EXPECT_EQ(dirty_rows, std::vector<int>({ 3 }));
 }
 
 // Test Shift modifier
@@ -162,16 +189,16 @@ TEST_F(TerminalLogicTest, TextBufferInsertion)
 TEST_F(TerminalLogicTest, ScrollUp)
 {
     // Fill the first row with 'a'
-    for (int c = 0; c < 80; ++c) {
+    for (int c = 0; c < logic->get_cols(); ++c) {
         logic->text_buffer[0][c] = { L'a', logic->current_attr };
     }
     // Fill the last row with 'b'
-    for (int c = 0; c < 80; ++c) {
-        logic->text_buffer[23][c] = { L'b', logic->current_attr };
+    for (int c = 0; c < logic->get_cols(); ++c) {
+        logic->text_buffer[logic->get_rows() - 1][c] = { L'b', logic->current_attr };
     }
 
     // Set cursor to last row
-    logic->cursor.row = 23;
+    logic->cursor.row = logic->get_rows() - 1;
     logic->cursor.col = 0;
 
     // Process a newline to trigger scroll
@@ -180,20 +207,27 @@ TEST_F(TerminalLogicTest, ScrollUp)
 
     // Verify buffer shifted: first row is gone, second row now first, last row is blank
     EXPECT_EQ(logic->text_buffer[0][0].ch, L' ');
-    EXPECT_EQ(logic->text_buffer[22][0].ch, L'b');
-    EXPECT_EQ(logic->text_buffer[23][0].ch, L' ');
+    EXPECT_EQ(logic->text_buffer[logic->get_rows() - 2][0].ch, L'b');
+    EXPECT_EQ(logic->text_buffer[logic->get_rows() - 1][0].ch, L' ');
 
     // Verify cursor is on the last row
-    EXPECT_EQ(logic->cursor.row, 23);
+    EXPECT_EQ(logic->cursor.row, logic->get_rows() - 1);
     EXPECT_EQ(logic->cursor.col, 0);
+
+    // Verify all rows are marked dirty
+    std::vector<int> expected_dirty_rows;
+    for (int r = 0; r < logic->get_rows(); ++r) {
+        expected_dirty_rows.push_back(r);
+    }
+    EXPECT_EQ(dirty_rows, expected_dirty_rows);
 }
 
 // Test ESC [0J (clear from cursor to end of screen)
 TEST_F(TerminalLogicTest, ClearScreenEsc0J)
 {
     // Fill buffer with 'x'
-    for (int r = 0; r < 24; ++r) {
-        for (int c = 0; c < 80; ++c) {
+    for (int r = 0; r < logic->get_rows(); ++r) {
+        for (int c = 0; c < logic->get_cols(); ++c) {
             logic->text_buffer[r][c] = { L'x', logic->current_attr };
         }
     }
@@ -201,11 +235,11 @@ TEST_F(TerminalLogicTest, ClearScreenEsc0J)
 
     // Process ESC [0J
     const char input[] = "\033[0J";
-    logic->process_input(input, 4);
+    auto dirty_rows    = logic->process_input(input, 4);
 
     // Verify rows before cursor.row are unchanged
     for (int r = 0; r < 5; ++r) {
-        for (int c = 0; c < 80; ++c) {
+        for (int c = 0; c < logic->get_cols(); ++c) {
             EXPECT_EQ(logic->text_buffer[r][c].ch, L'x');
         }
     }
@@ -213,12 +247,12 @@ TEST_F(TerminalLogicTest, ClearScreenEsc0J)
     for (int c = 0; c < 10; ++c) {
         EXPECT_EQ(logic->text_buffer[5][c].ch, L'x');
     }
-    for (int c = 10; c < 80; ++c) {
+    for (int c = 10; c < logic->get_cols(); ++c) {
         EXPECT_EQ(logic->text_buffer[5][c].ch, L' ');
     }
     // Verify rows after cursor.row are cleared
-    for (int r = 6; r < 24; ++r) {
-        for (int c = 0; c < 80; ++c) {
+    for (int r = 6; r < logic->get_rows(); ++r) {
+        for (int c = 0; c < logic->get_cols(); ++c) {
             EXPECT_EQ(logic->text_buffer[r][c].ch, L' ');
         }
     }
@@ -226,14 +260,21 @@ TEST_F(TerminalLogicTest, ClearScreenEsc0J)
     // Verify cursor position unchanged
     EXPECT_EQ(logic->cursor.row, 5);
     EXPECT_EQ(logic->cursor.col, 10);
+
+    // Verify dirty rows (from cursor.row to end)
+    std::vector<int> expected_dirty_rows;
+    for (int r = 5; r < logic->get_rows(); ++r) {
+        expected_dirty_rows.push_back(r);
+    }
+    EXPECT_EQ(dirty_rows, expected_dirty_rows);
 }
 
 // Test ESC [1J (clear from start of screen to cursor)
 TEST_F(TerminalLogicTest, ClearScreenEsc1J)
 {
     // Fill buffer with 'x'
-    for (int r = 0; r < 24; ++r) {
-        for (int c = 0; c < 80; ++c) {
+    for (int r = 0; r < logic->get_rows(); ++r) {
+        for (int c = 0; c < logic->get_cols(); ++c) {
             logic->text_buffer[r][c] = { L'x', logic->current_attr };
         }
     }
@@ -241,11 +282,11 @@ TEST_F(TerminalLogicTest, ClearScreenEsc1J)
 
     // Process ESC [1J
     const char input[] = "\033[1J";
-    logic->process_input(input, 4);
+    auto dirty_rows    = logic->process_input(input, 4);
 
     // Verify rows before cursor.row are cleared
     for (int r = 0; r < 5; ++r) {
-        for (int c = 0; c < 80; ++c) {
+        for (int c = 0; c < logic->get_cols(); ++c) {
             EXPECT_EQ(logic->text_buffer[r][c].ch, L' ');
         }
     }
@@ -253,12 +294,12 @@ TEST_F(TerminalLogicTest, ClearScreenEsc1J)
     for (int c = 0; c <= 10; ++c) {
         EXPECT_EQ(logic->text_buffer[5][c].ch, L' ');
     }
-    for (int c = 11; c < 80; ++c) {
+    for (int c = 11; c < logic->get_cols(); ++c) {
         EXPECT_EQ(logic->text_buffer[5][c].ch, L'x');
     }
     // Verify rows after cursor.row are unchanged
-    for (int r = 6; r < 24; ++r) {
-        for (int c = 0; c < 80; ++c) {
+    for (int r = 6; r < logic->get_rows(); ++r) {
+        for (int c = 0; c < logic->get_cols(); ++c) {
             EXPECT_EQ(logic->text_buffer[r][c].ch, L'x');
         }
     }
@@ -266,14 +307,21 @@ TEST_F(TerminalLogicTest, ClearScreenEsc1J)
     // Verify cursor position unchanged
     EXPECT_EQ(logic->cursor.row, 5);
     EXPECT_EQ(logic->cursor.col, 10);
+
+    // Verify dirty rows (from 0 to cursor.row)
+    std::vector<int> expected_dirty_rows;
+    for (int r = 0; r <= 5; ++r) {
+        expected_dirty_rows.push_back(r);
+    }
+    EXPECT_EQ(dirty_rows, expected_dirty_rows);
 }
 
 // Test ESC [2J (clear entire screen)
 TEST_F(TerminalLogicTest, ClearScreenEsc2J)
 {
     // Fill buffer with 'x'
-    for (int r = 0; r < 24; ++r) {
-        for (int c = 0; c < 80; ++c) {
+    for (int r = 0; r < logic->get_rows(); ++r) {
+        for (int c = 0; c < logic->get_cols(); ++c) {
             logic->text_buffer[r][c] = { L'x', logic->current_attr };
         }
     }
@@ -281,11 +329,11 @@ TEST_F(TerminalLogicTest, ClearScreenEsc2J)
 
     // Process ESC [2J
     const char input[] = "\033[2J";
-    logic->process_input(input, 4);
+    auto dirty_rows    = logic->process_input(input, 4);
 
     // Verify entire buffer is cleared
-    for (int r = 0; r < 24; ++r) {
-        for (int c = 0; c < 80; ++c) {
+    for (int r = 0; r < logic->get_rows(); ++r) {
+        for (int c = 0; c < logic->get_cols(); ++c) {
             EXPECT_EQ(logic->text_buffer[r][c].ch, L' ');
         }
     }
@@ -293,6 +341,13 @@ TEST_F(TerminalLogicTest, ClearScreenEsc2J)
     // Verify cursor is at (0,0)
     EXPECT_EQ(logic->cursor.row, 0);
     EXPECT_EQ(logic->cursor.col, 0);
+
+    // Verify all rows are marked dirty
+    std::vector<int> expected_dirty_rows;
+    for (int r = 0; r < logic->get_rows(); ++r) {
+        expected_dirty_rows.push_back(r);
+    }
+    EXPECT_EQ(dirty_rows, expected_dirty_rows);
 }
 
 // Test UTF-8 input decoding

@@ -1,5 +1,6 @@
 #include <ncurses.h>
 #include <unistd.h>
+
 #include <iostream>
 
 #include "system_interface.h"
