@@ -27,17 +27,17 @@ enable_testing()
 
 # Main executable
 add_executable(terminal_emulator
-    main.cpp
-    terminal_logic.cpp
-    curses_interface.cpp
+    src/main.cpp
+    src/terminal_logic.cpp
+    src/curses_interface.cpp
 )
 
 target_link_libraries(terminal_emulator ${CURSES_LIBRARIES})
 
 # Test executable
 add_executable(unit_tests
-    unit_tests.cpp
-    terminal_logic.cpp
+    src/unit_tests.cpp
+    src/terminal_logic.cpp
 )
 
 target_link_libraries(unit_tests ${CURSES_LIBRARIES} GTest::gtest_main)
