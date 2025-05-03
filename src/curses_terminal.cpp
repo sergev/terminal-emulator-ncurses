@@ -207,7 +207,11 @@ void CursesTerminal::process_keyboard_input()
     key.character = ch;
 
     switch (ch) {
+    case KEY_ENTER:
+        key.code = KeyCode::ENTER;
+        break;
     case 127:
+    case KEY_BACKSPACE:
         key.code = KeyCode::BACKSPACE;
         break;
     case KEY_UP:
