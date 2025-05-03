@@ -203,15 +203,6 @@ void CursesInterface::process_keyboard_input()
     if (status == ERR)
         return;
 
-    // Handle control characters (ASCII 0x00–0x1F) directly
-    if (ch <= ' ') {
-        char ctrl_char = static_cast<char>(ch);
-        if (write(pty_fd, &ctrl_char, 1) < 0) {
-            throw std::runtime_error("PTY closed: child process terminated");
-        }
-        return;
-    }
-
     KeyInput key;
     key.character = ch;
 
@@ -287,6 +278,11 @@ void CursesInterface::process_keyboard_input()
         break;
     default:
         key.code = KeyCode::CHARACTER;
+        if (ch < ' ') {
+            // Handle control characters (ASCII 0x00–0x1F).
+            key.character = ch + '@';
+            key.mod_ctrl = true;
+        }
         break;
     }
 
