@@ -60,6 +60,7 @@ void CursesInterface::initialize_ncurses()
     initscr();
     raw(); // Use raw mode to disable signal generation for Ctrl+C
     noecho();
+    nonl();
     keypad(stdscr, TRUE);
     nodelay(stdscr, TRUE); // Non-blocking input
     start_color();
