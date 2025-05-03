@@ -36,7 +36,7 @@
 #include <cstring>
 #include <iostream>
 
-CursesInterface::CursesInterface(int cols, int rows) : terminal(cols, rows), dirty_lines(rows, true)
+CursesInterface::CursesInterface(int cols, int rows) : display(cols, rows), dirty_lines(rows, true)
 {
     initialize_ncurses();
     initialize_pty();
@@ -109,8 +109,8 @@ void CursesInterface::initialize_pty()
 
         // Set initial geometry of child tty.
         struct winsize ws = {};
-        ws.ws_col         = terminal.get_cols();
-        ws.ws_row         = terminal.get_rows();
+        ws.ws_col         = display.get_cols();
+        ws.ws_row         = display.get_rows();
         if (ioctl(STDIN_FILENO, TIOCSWINSZ, &ws) < 0) {
             std::cerr << "ioctl TIOCSWINSZ failed: " << strerror(errno) << std::endl;
             exit(1);
@@ -184,7 +184,7 @@ void CursesInterface::process_pty_input()
         char buffer[1024];
         ssize_t bytes_read = read(pty_fd, buffer, sizeof(buffer));
         if (bytes_read > 0) {
-            std::vector<int> dirty_rows = terminal.process_input(buffer, bytes_read);
+            std::vector<int> dirty_rows = display.process_input(buffer, bytes_read);
             for (int row : dirty_rows) {
                 if (row >= 0 && static_cast<size_t>(row) < dirty_lines.size()) {
                     dirty_lines[row] = true;
@@ -286,7 +286,7 @@ void CursesInterface::process_keyboard_input()
         break;
     }
 
-    std::string input = terminal.process_key(key);
+    std::string input = display.process_key(key);
     if (!input.empty()) {
         if (write(pty_fd, input.c_str(), input.size()) < 0) {
             throw std::runtime_error("PTY closed: child process terminated");
@@ -296,7 +296,7 @@ void CursesInterface::process_keyboard_input()
 
 void CursesInterface::render_frame()
 {
-    const auto &text_buffer = terminal.get_text_buffer();
+    const auto &text_buffer = display.get_text_buffer();
     for (size_t row = 0; row < text_buffer.size(); ++row) {
         if (!dirty_lines[row])
             continue;
@@ -309,9 +309,9 @@ void CursesInterface::render_frame()
         CharAttr current_attr = text_buffer[row][0].attr;
         int start_col         = 0;
 
-        for (int col = 0; col < terminal.get_cols(); ++col) {
+        for (int col = 0; col < display.get_cols(); ++col) {
             const Char &ch = text_buffer[row][col];
-            if (ch.attr == current_attr && col < terminal.get_cols() - 1) {
+            if (ch.attr == current_attr && col < display.get_cols() - 1) {
                 current_text += ch.ch;
             } else {
                 if (!current_text.empty()) {
@@ -331,9 +331,9 @@ void CursesInterface::render_frame()
         }
     }
 
-    const Cursor &cursor = terminal.get_cursor();
+    const Cursor &cursor = display.get_cursor();
     if (cursor.row >= 0 && cursor.row < static_cast<int>(text_buffer.size()) && cursor.col >= 0 &&
-        cursor.col < terminal.get_cols()) {
+        cursor.col < display.get_cols()) {
         move(cursor.row, cursor.col);
         curs_set(1);
     } else {
@@ -345,7 +345,7 @@ void CursesInterface::render_frame()
 
 void CursesInterface::resize(int new_cols, int new_rows)
 {
-    terminal.resize(new_cols, new_rows);
+    display.resize(new_cols, new_rows);
     dirty_lines.assign(new_rows, true);
 
     struct winsize ws = {};
@@ -356,14 +356,4 @@ void CursesInterface::resize(int new_cols, int new_rows)
     }
 
     wresize(stdscr, new_rows, new_cols);
-}
-
-int CursesInterface::get_cols() const
-{
-    return terminal.get_cols();
-}
-
-int CursesInterface::get_rows() const
-{
-    return terminal.get_rows();
 }

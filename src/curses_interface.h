@@ -36,11 +36,11 @@ public:
     void process_keyboard_input();
     void render_frame();
     void resize(int new_cols, int new_rows);
-    int get_cols() const;
-    int get_rows() const;
+    int get_cols() const { return display.get_cols(); }
+    int get_rows() const { return display.get_rows(); }
 
 private:
-    AnsiLogic terminal;
+    AnsiLogic display;
     int pty_fd      = -1;
     pid_t child_pid = -1;
     std::vector<bool> dirty_lines;
