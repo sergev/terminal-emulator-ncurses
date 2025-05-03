@@ -23,6 +23,7 @@
 //
 #include <ncurses.h>
 #include <unistd.h>
+#include <locale.h>
 
 #include <iostream>
 
@@ -33,6 +34,7 @@ int main(int argc, char *argv[])
     try {
         // Get terminal size
         int rows, cols;
+        setlocale(LC_ALL, "en_US.UTF-8");
         initscr();
         getmaxyx(stdscr, rows, cols);
         endwin();
