@@ -136,39 +136,39 @@ int CursesTerminal::get_color_pair(const CharAttr &attr)
 {
     int fg = 7; // Default to white
     int bg = 0; // Default to black
-    if (attr.fg_r == 0 && attr.fg_g == 0 && attr.fg_b == 0)
-        fg = 0; // Black
-    else if (attr.fg_r == 255 && attr.fg_g == 0 && attr.fg_b == 0)
-        fg = 1; // Red
-    else if (attr.fg_r == 0 && attr.fg_g == 255 && attr.fg_b == 0)
-        fg = 2; // Green
-    else if (attr.fg_r == 255 && attr.fg_g == 255 && attr.fg_b == 0)
-        fg = 3; // Yellow
-    else if (attr.fg_r == 0 && attr.fg_g == 0 && attr.fg_b == 255)
-        fg = 4; // Blue
-    else if (attr.fg_r == 255 && attr.fg_g == 0 && attr.fg_b == 255)
-        fg = 5; // Magenta
-    else if (attr.fg_r == 0 && attr.fg_g == 255 && attr.fg_b == 255)
-        fg = 6; // Cyan
-    else if (attr.fg_r == 255 && attr.fg_g == 255 && attr.fg_b == 255)
-        fg = 7; // White
+    if (attr.fg == RgbColor{ 0, 0, 0 }) // Black
+        fg = 0;
+    else if (attr.fg == RgbColor{ 255, 0, 0 }) // Red
+        fg = 1;
+    else if (attr.fg == RgbColor{ 0, 255, 0 }) // Green
+        fg = 2;
+    else if (attr.fg == RgbColor{ 255, 255, 0 }) // Yellow
+        fg = 3;
+    else if (attr.fg == RgbColor{ 0, 0, 255 }) // Blue
+        fg = 4;
+    else if (attr.fg == RgbColor{ 255, 0, 255 }) // Magenta
+        fg = 5;
+    else if (attr.fg == RgbColor{ 0, 255, 255 }) // Cyan
+        fg = 6;
+    else if (attr.fg == RgbColor{ 255, 255, 255 }) // White
+        fg = 7;
 
-    if (attr.bg_r == 0 && attr.bg_g == 0 && attr.bg_b == 0)
-        bg = 0; // Black
-    else if (attr.bg_r == 255 && attr.bg_g == 0 && attr.bg_b == 0)
-        bg = 1; // Red
-    else if (attr.bg_r == 0 && attr.bg_g == 255 && attr.bg_b == 0)
-        bg = 2; // Green
-    else if (attr.bg_r == 255 && attr.bg_g == 255 && attr.bg_b == 0)
-        bg = 3; // Yellow
-    else if (attr.bg_r == 0 && attr.bg_g == 0 && attr.bg_b == 255)
-        bg = 4; // Blue
-    else if (attr.bg_r == 255 && attr.bg_g == 0 && attr.bg_b == 255)
-        bg = 5; // Magenta
-    else if (attr.bg_r == 0 && attr.bg_g == 255 && attr.bg_b == 255)
-        bg = 6; // Cyan
-    else if (attr.bg_r == 255 && attr.bg_g == 255 && attr.bg_b == 255)
-        bg = 7; // White
+    if (attr.bg == RgbColor{ 0, 0, 0 }) // Black
+        bg = 0;
+    else if (attr.bg == RgbColor{ 255, 0, 0 }) // Red
+        bg = 1;
+    else if (attr.bg == RgbColor{ 0, 255, 0 }) // Green
+        bg = 2;
+    else if (attr.bg == RgbColor{ 255, 255, 0 }) // Yellow
+        bg = 3;
+    else if (attr.bg == RgbColor{ 0, 0, 255 }) // Blue
+        bg = 4;
+    else if (attr.bg == RgbColor{ 255, 0, 255 }) // Magenta
+        bg = 5;
+    else if (attr.bg == RgbColor{ 0, 255, 255 }) // Cyan
+        bg = 6;
+    else if (attr.bg == RgbColor{ 255, 255, 255 }) // White
+        bg = 7;
 
     return COLOR_PAIR(fg * 8 + bg + 1);
 }
