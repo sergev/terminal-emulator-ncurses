@@ -27,7 +27,7 @@
 
 #include <iostream>
 
-#include "curses_interface.h"
+#include "curses_terminal.h"
 
 int main(int argc, char *argv[])
 {
@@ -39,21 +39,21 @@ int main(int argc, char *argv[])
         getmaxyx(stdscr, rows, cols);
         endwin();
 
-        CursesInterface curses_interface(cols, rows);
+        CursesTerminal terminal(cols, rows);
 
         // Main loop
         while (true) {
             try {
-                curses_interface.process_keyboard_input();
-                curses_interface.process_pty_input();
-                curses_interface.render_frame();
+                terminal.process_keyboard_input();
+                terminal.process_pty_input();
+                terminal.render_frame();
 
                 // Check for terminal resize
                 int new_rows, new_cols;
                 getmaxyx(stdscr, new_rows, new_cols);
-                if (new_rows != curses_interface.get_rows() ||
-                    new_cols != curses_interface.get_cols()) {
-                    curses_interface.resize(new_cols, new_rows);
+                if (new_rows != terminal.get_rows() ||
+                    new_cols != terminal.get_cols()) {
+                    terminal.resize(new_cols, new_rows);
                 }
 
                 usleep(10000); // 10ms delay

@@ -30,8 +30,8 @@ enable_testing()
 # Main executable
 add_executable(terminal_emulator
     src/main.cpp
+    src/curses_terminal.cpp
     src/ansi_logic.cpp
-    src/curses_interface.cpp
 )
 target_include_directories(terminal_emulator PRIVATE
     ${gtest_SOURCE_DIR}/include

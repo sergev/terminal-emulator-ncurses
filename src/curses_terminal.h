@@ -21,17 +21,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-#ifndef CURSES_INTERFACE_H
-#define CURSES_INTERFACE_H
+#ifndef CURSES_TERMINAL_H
+#define CURSES_TERMINAL_H
 
 #include <vector>
 
 #include "ansi_logic.h"
 
-class CursesInterface {
+class CursesTerminal {
 public:
-    CursesInterface(int cols, int rows);
-    ~CursesInterface();
+    CursesTerminal(int cols, int rows);
+    ~CursesTerminal();
     void process_pty_input();
     void process_keyboard_input();
     void render_frame();
@@ -51,4 +51,4 @@ private:
     int get_color_pair(const CharAttr &attr);
 };
 
-#endif // CURSES_INTERFACE_H
+#endif // CURSES_TERMINAL_H

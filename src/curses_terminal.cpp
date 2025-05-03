@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-#include "curses_interface.h"
+#include "curses_terminal.h"
 
 #include <fcntl.h>
 #include <ncurses.h>
@@ -36,14 +36,14 @@
 #include <cstring>
 #include <iostream>
 
-CursesInterface::CursesInterface(int cols, int rows) : display(cols, rows), dirty_lines(rows, true)
+CursesTerminal::CursesTerminal(int cols, int rows) : display(cols, rows), dirty_lines(rows, true)
 {
     initialize_ncurses();
     initialize_pty();
     initialize_colors();
 }
 
-CursesInterface::~CursesInterface()
+CursesTerminal::~CursesTerminal()
 {
     if (child_pid > 0) {
         kill(child_pid, SIGTERM);
@@ -55,7 +55,7 @@ CursesInterface::~CursesInterface()
     endwin();
 }
 
-void CursesInterface::initialize_ncurses()
+void CursesTerminal::initialize_ncurses()
 {
     initscr();
     raw(); // Use raw mode to disable signal generation for Ctrl+C
@@ -67,7 +67,7 @@ void CursesInterface::initialize_ncurses()
     use_default_colors();
 }
 
-void CursesInterface::initialize_pty()
+void CursesTerminal::initialize_pty()
 {
     pty_fd = posix_openpt(O_RDWR | O_NOCTTY);
     if (pty_fd < 0) {
@@ -123,7 +123,7 @@ void CursesInterface::initialize_pty()
     }
 }
 
-void CursesInterface::initialize_colors()
+void CursesTerminal::initialize_colors()
 {
     for (int fg = 0; fg < 8; ++fg) {
         for (int bg = 0; bg < 8; ++bg) {
@@ -132,7 +132,7 @@ void CursesInterface::initialize_colors()
     }
 }
 
-int CursesInterface::get_color_pair(const CharAttr &attr)
+int CursesTerminal::get_color_pair(const CharAttr &attr)
 {
     int fg = 7; // Default to white
     int bg = 0; // Default to black
@@ -173,7 +173,7 @@ int CursesInterface::get_color_pair(const CharAttr &attr)
     return COLOR_PAIR(fg * 8 + bg + 1);
 }
 
-void CursesInterface::process_pty_input()
+void CursesTerminal::process_pty_input()
 {
     fd_set read_fds;
     FD_ZERO(&read_fds);
@@ -196,7 +196,7 @@ void CursesInterface::process_pty_input()
     }
 }
 
-void CursesInterface::process_keyboard_input()
+void CursesTerminal::process_keyboard_input()
 {
     wint_t ch;
     int status = get_wch(&ch);
@@ -294,7 +294,7 @@ void CursesInterface::process_keyboard_input()
     }
 }
 
-void CursesInterface::render_frame()
+void CursesTerminal::render_frame()
 {
     const auto &text_buffer = display.get_text_buffer();
     for (size_t row = 0; row < text_buffer.size(); ++row) {
@@ -343,7 +343,7 @@ void CursesInterface::render_frame()
     refresh();
 }
 
-void CursesInterface::resize(int new_cols, int new_rows)
+void CursesTerminal::resize(int new_cols, int new_rows)
 {
     display.resize(new_cols, new_rows);
     dirty_lines.assign(new_rows, true);
