@@ -26,7 +26,7 @@
 
 #include <vector>
 
-#include "terminal_logic.h"
+#include "ansi_logic.h"
 
 class CursesInterface {
 public:
@@ -40,7 +40,7 @@ public:
     int get_rows() const;
 
 private:
-    TerminalLogic terminal;
+    AnsiLogic terminal;
     int pty_fd      = -1;
     pid_t child_pid = -1;
     std::vector<bool> dirty_lines;
