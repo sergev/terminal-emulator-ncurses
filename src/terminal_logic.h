@@ -92,7 +92,7 @@ enum class AnsiState { NORMAL, ESCAPE, CSI };
 
 class TerminalLogic {
 public:
-    TerminalLogic(int cols = 80, int rows = 24);
+    TerminalLogic(int cols, int rows);
     void resize(int new_cols, int new_rows);
     std::vector<int> process_input(const char *buffer, size_t length);
     std::string process_key(const KeyInput &key);

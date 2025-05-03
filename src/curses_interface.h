@@ -30,7 +30,7 @@
 
 class CursesInterface {
 public:
-    CursesInterface(int cols = 80, int rows = 24);
+    CursesInterface(int cols, int rows);
     ~CursesInterface();
     void process_pty_input();
     void process_keyboard_input();

@@ -107,6 +107,15 @@ void CursesInterface::initialize_pty()
         close(slave_fd);
         close(pty_fd);
 
+        // Set initial geometry of child tty.
+        struct winsize ws = {};
+        ws.ws_col         = terminal.get_cols();
+        ws.ws_row         = terminal.get_rows();
+        if (ioctl(STDIN_FILENO, TIOCSWINSZ, &ws) < 0) {
+            std::cerr << "ioctl TIOCSWINSZ failed: " << strerror(errno) << std::endl;
+            exit(1);
+        }
+
         setenv("TERM", "xterm-256color", 1);
         execlp("/bin/sh", "/bin/sh", nullptr);
         std::cerr << "execlp failed: " << strerror(errno) << std::endl;
@@ -195,7 +204,7 @@ void CursesInterface::process_keyboard_input()
         return;
 
     // Handle control characters (ASCII 0x00–0x1F) directly
-    if (ch <= 0x1F) {
+    if (ch <= ' ') {
         char ctrl_char = static_cast<char>(ch);
         if (write(pty_fd, &ctrl_char, 1) < 0) {
             throw std::runtime_error("PTY closed: child process terminated");
@@ -207,19 +216,8 @@ void CursesInterface::process_keyboard_input()
     key.character = ch;
 
     switch (ch) {
-    case '\n':
-    case '\r':
-        key.code = KeyCode::ENTER;
-        break;
     case 127:
-    case KEY_BACKSPACE:
         key.code = KeyCode::BACKSPACE;
-        break;
-    case '\t':
-        key.code = KeyCode::TAB;
-        break;
-    case 27:
-        key.code = KeyCode::ESCAPE;
         break;
     case KEY_UP:
         key.code = KeyCode::UP;
@@ -288,11 +286,7 @@ void CursesInterface::process_keyboard_input()
         key.code = KeyCode::F12;
         break;
     default:
-        if (ch >= 32) {
-            key.code = KeyCode::CHARACTER;
-            if (ch >= 'A' && ch <= 'Z')
-                key.mod_shift = true;
-        }
+        key.code = KeyCode::CHARACTER;
         break;
     }
 
