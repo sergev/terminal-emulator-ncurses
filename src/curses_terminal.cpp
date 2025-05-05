@@ -132,45 +132,110 @@ void CursesTerminal::initialize_colors()
     }
 }
 
+static int get_color_index(const RgbColor &color)
+{
+    switch (color.r) {
+    case 0:
+        switch (color.g) {
+        case 0:
+            switch (color.b) {
+            case 0:
+                return 0; // 0, 0, 0 - Black
+            case 255:
+                return 4 + 8; // 0, 0, 255 - Bright Blue
+            default:
+                return 4; // 0, 0, 192 - Blue
+            }
+        case 255:
+            switch (color.b) {
+            case 0:
+                return 2 + 8; // 0, 255, 0 - Bright Green
+            case 255:
+                return 6 + 8; // 0, 255, 255 - Bright Cyan
+            default:
+                return 4; // ~ Cyan
+            }
+        default:
+            switch (color.b) {
+            case 0:
+                return 2; // 0, 192, 0 - Green
+            case 255:
+                return 4; // ~ Cyan
+            default:
+                return 6; // 0, 192, 192 - Cyan
+            }
+        }
+    case 255:
+        switch (color.g) {
+        case 0:
+            switch (color.b) {
+            case 0:
+                return 1 + 8; // 255, 0, 0 - Bright Red
+            case 255:
+                return 5 + 8; // 255, 0, 255 - Bright Magenta
+            default:
+                return 5; // ~ Magenta
+            }
+        case 255:
+            switch (color.b) {
+            case 0:
+                return 3 + 8; // 255, 255, 0 - Bright Yellow
+            case 255:
+                return 7 + 8; // 255, 255, 255 - Bright White
+            default:
+                return 3 + 8; // ~ Bright Yellow
+            }
+        default:
+            switch (color.b) {
+            case 0:
+                return 3; // ~ Yellow (Brown)
+            case 255:
+                return 5 + 8; // ~ Bright Magenta
+            default:
+                return 1 + 8; // ~ Bright Red
+            }
+        }
+    default:
+        switch (color.g) {
+        case 0:
+            switch (color.b) {
+            case 0:
+                return 1; // 192, 0, 0 - Red
+            case 255:
+                return 5; // ~ Magenta
+            default:
+                return 5; // 192, 0, 192 - Magenta
+            }
+        case 255:
+            switch (color.b) {
+            case 0:
+                return 3 + 8; // ~ Bright Yellow
+            case 255:
+                return 6 + 8; // ~ Bright Cyan
+            default:
+                return 3 + 8; // ~ Bright Green
+            }
+        default:
+            switch (color.b) {
+            case 0:
+                return 3; // 192, 85, 0 - Yellow (Brown)
+            case 255:
+                return 4 + 8; // ~ Bright Blue
+            default:
+                return 7; // 192, 192, 192 - White (Light Gray)
+            }
+        }
+    }
+}
+
 int CursesTerminal::get_color_pair(const CharAttr &attr)
 {
-    int fg = 7; // Default to white
-    int bg = 0; // Default to black
-    if (attr.fg == RgbColor{ 0, 0, 0 }) // Black
-        fg = 0;
-    else if (attr.fg == RgbColor{ 255, 0, 0 }) // Red
-        fg = 1;
-    else if (attr.fg == RgbColor{ 0, 255, 0 }) // Green
-        fg = 2;
-    else if (attr.fg == RgbColor{ 255, 255, 0 }) // Yellow
-        fg = 3;
-    else if (attr.fg == RgbColor{ 0, 0, 255 }) // Blue
-        fg = 4;
-    else if (attr.fg == RgbColor{ 255, 0, 255 }) // Magenta
-        fg = 5;
-    else if (attr.fg == RgbColor{ 0, 255, 255 }) // Cyan
-        fg = 6;
-    else if (attr.fg == RgbColor{ 255, 255, 255 }) // White
-        fg = 7;
-
-    if (attr.bg == RgbColor{ 0, 0, 0 }) // Black
-        bg = 0;
-    else if (attr.bg == RgbColor{ 255, 0, 0 }) // Red
-        bg = 1;
-    else if (attr.bg == RgbColor{ 0, 255, 0 }) // Green
-        bg = 2;
-    else if (attr.bg == RgbColor{ 255, 255, 0 }) // Yellow
-        bg = 3;
-    else if (attr.bg == RgbColor{ 0, 0, 255 }) // Blue
-        bg = 4;
-    else if (attr.bg == RgbColor{ 255, 0, 255 }) // Magenta
-        bg = 5;
-    else if (attr.bg == RgbColor{ 0, 255, 255 }) // Cyan
-        bg = 6;
-    else if (attr.bg == RgbColor{ 255, 255, 255 }) // White
-        bg = 7;
-
-    return COLOR_PAIR(fg * 8 + bg + 1);
+    int fg = get_color_index(attr.fg);
+    int bg = get_color_index(attr.bg) % 8;
+    int pair = COLOR_PAIR(fg % 8 * 8 + bg + 1);
+    if (fg >= 8)
+        pair |= A_BOLD;
+    return pair;
 }
 
 void CursesTerminal::process_pty_input()
